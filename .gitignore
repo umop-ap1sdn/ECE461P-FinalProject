@@ -29,6 +29,9 @@ MANIFEST
 # virtual environments
 keras_env/
 
+# large training files
+BTCdata_final.csv
+
 # PyInstaller
 #  Usually these files are written by a python script from a template
 #  before PyInstaller builds the exe, so as to inject date/other infos into it.

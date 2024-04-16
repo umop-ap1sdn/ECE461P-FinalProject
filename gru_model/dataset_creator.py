@@ -48,6 +48,10 @@ scaler = StandardScaler()
 price = scaler.fit_transform(np.array(percent_price).reshape(-1, 1)).flatten().tolist()
 volume = scaler.fit_transform(np.array(diff_vol).reshape(-1, 1)).flatten().tolist()
 
+price = [round(x, 4) for x in price]
+volume = [round(x, 4) for x in volume]
+
+
 lagging_size = 32
 lagging_price, target_price = lagging_series(price, lagging_size)
 lagging_volume, target_volume = lagging_series(volume, lagging_size)
@@ -63,7 +67,7 @@ for i in range(lagging_size):
 for i in range(lagging_size):
     df['v[t-' + str(i) + ']'] = lagging_volume[i]
 
-df.to_csv("BTCdata_final.csv", index=False)
+df.to_csv("BTCdata_final_round.csv", index=False)
 
 # fig, ax = plt.subplots()
 # bins = np.linspace(-20, 20, 1000)

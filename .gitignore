@@ -38,7 +38,7 @@ BTCdata_final_binary.csv
 gru_trading_queue.csv
 
 # Files with secret keys
-auto_trader.py
+keys.csv
 
 # PyInstaller
 #  Usually these files are written by a python script from a template

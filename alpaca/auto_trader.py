@@ -93,9 +93,19 @@ def basicPrepare():
 
     return fixed.iloc[::-1]
 
-# Assign this to your own alpaca account
-alpaca_id = "{YOUR_ALPACA_ID_HERE}"
-alpaca_secret = "{YOUR_ALPACA_SECRET_KEY_HERE}"
+########################################################
+# 
+# Create your own file 'alpaca/keys.csv'
+# File should be formatted as:
+# 
+# public,private
+# {YOUR_PUBLIC_KEY},{YOUR_PRIVATE_KEY}
+# 
+########################################################
+keys = pd.read_csv('alpaca/keys.csv')
+
+alpaca_id = keys['public'][0]
+alpaca_secret = keys['private'][0]
 
 # assign this to your trading queue
 queue_path = 'alpaca/gru_trading_queue.csv'

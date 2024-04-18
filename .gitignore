@@ -36,6 +36,7 @@ BTCdata_final_binary.csv
 
 # Trading Files
 gru_trading_queue.csv
+gru_log.csv
 
 # Files with secret keys
 keys.csv

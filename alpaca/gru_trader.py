@@ -5,6 +5,8 @@ import auto_trader
 
 import pandas as pd
 import numpy as np
+import os
+
 from sklearn.preprocessing import StandardScaler
 
 ########################################################
@@ -166,20 +168,35 @@ def run_prediction():
     print(y_pred)
     return y_pred[-1]
 
+log_path = 'alpaca/gru_log.csv'
+current_log = []
+
+if os.path.exists(log_path):
+    df = pd.read_csv(log_path)
+    for i in df['log']:
+        current_log.append(i)
+
 auto_trader.queue = auto_trader.build_queue()
 decision = run_prediction()
 
 BUY_THRESHOLD = 0.7
 SELL_THRESHOLD = 0.3
 
+
 # '''
 if decision >= BUY_THRESHOLD:
     print("Buying Bitcoin")
+    current_log.append('bought')
     auto_trader.buy()
 elif decision <= SELL_THRESHOLD:
     print("Selling Bitcoin")
+    current_log.append('sold')
     auto_trader.sell()
 else:
+    current_log.append('neither')
     print('Uncertainty too high to trade')
 
+df = pd.DataFrame()
+df['log'] = current_log
+df.to_csv(log_path, index=False)
 # '''

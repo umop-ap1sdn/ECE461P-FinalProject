@@ -256,5 +256,6 @@ def save_queue():
 
 queue = load_queue()
 
+buy()
 
 save_queue()

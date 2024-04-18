@@ -144,14 +144,26 @@ def extrapolate(model, initial_pred, extra):
     
     return y_pred
 
-price_scaler, volume_scaler = fit_scalers()
-data = auto_trader.basicPrepare()
-data, extra = gru_prepare(data, price_scaler=price_scaler, volume_scaler=volume_scaler)
-X, y = gru_xy(data)
+def run_prediction():
+    # Do this first as it is a long running function that does not depend on the newest data
+    price_scaler, volume_scaler = fit_scalers()
+    # Pre-trained model
+    model = load_model('gru_bitcoin.keras')
 
-model = load_model('gru_bitcoin.keras')
-y_pred = predict_primary(model, X)
-print(y_pred)
-y_pred = extrapolate(model, y_pred[-1, 0, 0], extra.to_numpy())
+    # Data is collected here, timing is important after this moment
+    data = auto_trader.basicPrepare()
 
-print(y_pred)
+    # Create dataset, prepared in the same way as the initial
+    # Extra dataset refers to the left over values that get cut off because of the forward binary values
+    data, extra = gru_prepare(data, price_scaler=price_scaler, volume_scaler=volume_scaler)
+    X, y = gru_xy(data)
+
+    # Create base predictions of the dataset
+    y_pred = predict_primary(model, X)
+    # Create extrapolated predictions from the extra data, and most previously predicted value
+    y_pred = extrapolate(model, y_pred[-1, 0, 0], extra.to_numpy())
+
+    print(y_pred)
+    return y_pred[-1]
+
+run_prediction()

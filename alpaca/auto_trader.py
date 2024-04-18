@@ -1,8 +1,14 @@
 import requests
+import json
+import os
 
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import StandardScaler
+
+from queue import Queue
+
+
 
 ########################################################
 # 
@@ -87,4 +93,158 @@ def basicPrepare():
 
     return fixed.iloc[::-1]
 
+# Assign this to your own alpaca account
+alpaca_id = "{YOUR_ALPACA_ID_HERE}"
+alpaca_secret = "{YOUR_ALPACA_SECRET_KEY_HERE}"
 
+# assign this to your trading queue
+queue_path = 'alpaca/gru_trading_queue.csv'
+
+########################################################
+# 
+# These functions are for performing ALPACA trades
+# for ALL instances of your program call load and save
+# queue before performing any actions
+# 
+# Use buy() to purchase $50 worth of bitcoin
+# This will automatically be added to a queue
+# Use sell() to sell the exact amount of bitcoin
+# purchased in the first available queue item
+# 
+# load_queue() loads the file which contains the running
+# queue
+# save_queue() saves the queue to a file
+# 
+########################################################
+
+
+# This function is preferably not called by the user at all
+def add_buy_to_queue():
+    url = "https://paper-api.alpaca.markets/v2/positions/BTCUSD"
+
+    headers = {
+        "accept": "application/json",
+        "APCA-API-KEY-ID": alpaca_id,
+        "APCA-API-SECRET-KEY": alpaca_secret
+    }
+
+    response = requests.get(url, headers=headers)
+
+    data = json.loads(response.text)
+
+    qty = data["qty"]
+
+    if queue.empty():
+        print("Bought", qty, "bitcoin")
+        queue.put(qty)
+    else:
+        temp_queue = Queue()
+        last_element = 0
+        while not queue.empty():
+            last_element = queue.get()
+            temp_queue.put(last_element)
+        
+        while not temp_queue.empty():
+            queue.put(temp_queue.get())
+        amount = float(qty) - float(last_element)
+        queue.put(amount)
+        print("Bought", amount, "bitcoin")
+    
+
+def buy():
+    url = "https://paper-api.alpaca.markets/v2/orders"
+
+    payload = {
+        "side": "buy",
+        "type": "market",
+        "time_in_force": "ioc",
+        "symbol": "BTC/USD",
+        "notional": "50"
+    }
+    headers = {
+        "accept": "application/json",
+        "content-type": "application/json",
+        "APCA-API-KEY-ID": alpaca_id,
+        "APCA-API-SECRET-KEY": alpaca_secret
+    }
+
+    response = requests.post(url, json=payload, headers=headers)
+
+    print("Status code:", response.status_code)
+    if response.status_code == 200:
+        add_buy_to_queue()
+
+# Preferably this also is not called by anyone directly, only if the sell call fails
+def sell_all():
+    print("attempting to sell all remaining bitcoin.")
+    url = "https://paper-api.alpaca.markets/v2/positions/BTCUSD?percentage=100"
+
+    headers = {
+        "accept": "application/json",
+        "APCA-API-KEY-ID": alpaca_id,
+        "APCA-API-SECRET-KEY": alpaca_secret
+    }
+
+    response = requests.delete(url, headers=headers)
+
+    if response.status_code == 200:
+        print('success, emptying queue')
+        while not queue.empty():
+            queue.get()
+
+def sell():
+    if queue.empty():
+        print("Nothing to sell")
+        return
+
+    amount = queue.get()
+    
+    url = "https://paper-api.alpaca.markets/v2/orders"
+
+    payload = {
+        "side": "sell",
+        "type": "market",
+        "time_in_force": "ioc",
+        "symbol": "BTC/USD",
+        "qty": str(amount)
+    }
+    headers = {
+        "accept": "application/json",
+        "content-type": "application/json",
+        "APCA-API-KEY-ID": alpaca_id,
+        "APCA-API-SECRET-KEY": alpaca_secret
+    }
+
+    response = requests.post(url, json=payload, headers=headers)
+    print("Status code:", response.status_code)
+    if response.status_code == 200:
+        print("Sold", amount, "bitcoin")
+    elif response.status_code == 403:
+        print("Attempted to oversell supply, selling all bitcoin")
+    else:
+        queue.put(amount)
+
+def load_queue():
+    queue = Queue()
+    if not os.path.exists(queue_path):
+        return
+
+    
+    df = pd.read_csv(queue_path)
+    for i in df['Buys']:
+        queue.put(i)
+    
+    return queue
+
+def save_queue():
+    positions = []
+    while not queue.empty():
+        positions.append(queue.get())
+    
+    df = pd.DataFrame(np.reshape(positions, (-1, 1)), columns=['Buys'])
+    df.to_csv(queue_path, index=False)
+
+queue = load_queue()
+
+
+save_queue()

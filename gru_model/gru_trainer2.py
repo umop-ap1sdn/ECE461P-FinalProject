@@ -97,3 +97,5 @@ print(y_test_pred)
 print(y_test_pred.mean(), y_test_pred.std())
 print("Train Score:", roc_auc_score(y_train, y_train_pred))
 print("Test Score:", roc_auc_score(y_test, y_test_pred))
+
+model.save('gru_bitcoin.h5')

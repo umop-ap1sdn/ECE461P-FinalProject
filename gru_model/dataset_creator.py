@@ -35,6 +35,23 @@ def percent_difference(column):
     return new_column
 
 
+def binary(target_price):
+    binary = []
+    price = 0
+    for i in range(10):
+        price += target_price[i]
+    
+    if price > 0: binary.append(1)
+    else: binary.append(0)
+
+    for i in range(10, len(target_price)):
+        price -= target_price[i - 10]
+        price += target_price[i]
+        if price > 0: binary.append(1)
+        else: binary.append(0)
+    
+    return binary
+
 clean = pd.read_csv("BTCdata_clean.csv")
 diff_price = difference(clean['Open Price'])
 diff_vol = difference(clean['Volume'])
@@ -56,6 +73,9 @@ lagging_size = 32
 lagging_price, target_price = lagging_series(price, lagging_size)
 lagging_volume, target_volume = lagging_series(volume, lagging_size)
 
+binary = binary(target_price)
+
+'''
 df = pd.DataFrame()
 
 df['Target_Price'] = target_price
@@ -68,9 +88,21 @@ for i in range(lagging_size):
     df['v[t-' + str(i) + ']'] = lagging_volume[i]
 
 df.to_csv("BTCdata_final_round.csv", index=False)
+'''
 
 # fig, ax = plt.subplots()
 # bins = np.linspace(-20, 20, 1000)
 # ax.hist(diff_vol, bins=bins)
 # plt.show()
 
+df = pd.DataFrame()
+
+df['binary'] = binary
+
+for i in range(lagging_size):
+    df['p[t-' + str(i) + ']'] = lagging_price[i][:-9]
+
+for i in range(lagging_size):
+    df['v[t-' + str(i) + ']'] = lagging_volume[i][:-9]
+
+df.to_csv("BTCdata_final_binary.csv", index=False)

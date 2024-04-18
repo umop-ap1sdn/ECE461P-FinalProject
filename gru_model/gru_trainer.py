@@ -6,6 +6,7 @@ from keras import losses
 from keras import layers
 from keras.layers import Activation
 from keras import backend as K
+import tensorflow as tf
 
 import numpy as np
 import pandas as pd
@@ -35,31 +36,46 @@ print(X_train.shape, X_test.shape, y_train.shape, y_test.shape)
 
 
 ### Create Model ### 
-def cube_root_activation(x):
-    return K.pow(x, 1/3)
-
-CR_activation = Activation(cube_root_activation)
+# @tf.function
+# def cube_root_activation(x):
+#     return K.sigmoid(x)
 
 
 batch_size = 64
 input_size = 64
 output_size = 2
 
-l1 = 0.01
-l2 = 0.01
+l1 = 0.00
+l2 = 0.00
+
+tf.random.set_seed(42)
 
 ### Build Model from ground-up ###
 model = Sequential(name="BitcoinGRU")
 model.add(layers.Input(shape=(None, input_size)))
-model.add(layers.GRU(64, kernel_regularizer=regularizers.L1L2(l1, l2)))
+model.add(layers.Dense(64, activation='tanh', kernel_regularizer=regularizers.L1L2(l1, l2)))
+model.add(layers.Dense(64, activation='tanh', kernel_regularizer=regularizers.L1L2(l1, l2)))
 model.add(layers.Dense(32, activation='relu', kernel_regularizer=regularizers.L1L2(l1, l2)))
-model.add(layers.Dense(output_size, activation=CR_activation, kernel_regularizer=regularizers.L1L2(l1, l2)))
+model.add(layers.Dense(output_size, activation=lambda x: x ** 1./3., kernel_regularizer=regularizers.L1L2(l1, l2)))
 
 model.compile(
-    optimizer=optimizers.Adam(learning_rate=4e-4, beta_1=0.9, beta_2=0.999),
-    loss=losses.MeanSquaredError(reduction='sum_over_batch_size')
+    optimizer=optimizers.Adam(learning_rate=1e-4, beta_1=0.9, beta_2=0.999),
+    loss='mse',
+    metrics=['mae']
 )
 
 model.summary()
 
 print("Working")
+
+X_train = np.reshape(X_train, (-1, 1, 64))
+X_test = np.reshape(X_test, (-1, 1, 64))
+
+y_train = np.reshape(y_train, (-1, 1, 2))
+y_test = np.reshape(y_test, (-1, 1, 2))
+
+
+model.fit(x=X_train, y=y_train, epochs=10, batch_size=batch_size, validation_data=(X_test, y_test))
+test_loss = model.evaluate(X_test, y_test)
+
+print("Results:", test_loss)

@@ -21,7 +21,7 @@ print(dataset.head())
 train_cols = np.arange(1, 33)
 train_cols = np.append(train_cols, np.arange(33, 65))
 
-X = dataset.iloc[:-1, np.arange(1,33)]
+X = dataset.iloc[:-1, train_cols]
 X['bin'] = dataset.iloc[:-1, 0]
 y = dataset.loc[1:, 'binary']
 
@@ -98,4 +98,4 @@ print(y_test_pred.mean(), y_test_pred.std())
 print("Train Score:", roc_auc_score(y_train, y_train_pred))
 print("Test Score:", roc_auc_score(y_test, y_test_pred))
 
-model.save('gru_bitcoin.h5')
+model.save('gru_bitcoin.keras')

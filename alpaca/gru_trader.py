@@ -1,3 +1,6 @@
+from keras.models import load_model
+import tensorflow as tf
+
 import auto_trader
 
 import pandas as pd
@@ -58,7 +61,7 @@ def binary_prep(target_price):
     
     return binary
 
-def gru_prepare(clean):
+def gru_prepare(clean, price_scaler, volume_scaler):
     diff_price = difference(clean['Open Price'])
     diff_vol = difference(clean['Volume'])
 
@@ -66,18 +69,6 @@ def gru_prepare(clean):
     percent_vol = percent_difference(clean['Volume'])
 
     ### Use Percent Price, Difference Volume
-
-    price_scaler = StandardScaler()
-    volume_scaler = StandardScaler()
-
-    ### Fit scalers on original data
-    pre_cleaned = pd.read_csv("BTCdata_clean.csv")
-
-    percent_price_orig = percent_difference(pre_cleaned['Open Price'])
-    diff_vol_orig = difference(pre_cleaned['Volume'])
-
-    price_scaler.fit(np.array(percent_price_orig).reshape(-1, 1))
-    volume_scaler.fit(np.array(diff_vol_orig).reshape(-1, 1))
 
     price = price_scaler.transform(np.array(percent_price).reshape(-1, 1)).flatten().tolist()
     volume = volume_scaler.fit_transform(np.array(diff_vol).reshape(-1, 1)).flatten().tolist()
@@ -93,16 +84,19 @@ def gru_prepare(clean):
     binary = binary_prep(target_price)
 
     df = pd.DataFrame()
+    extra = pd.DataFrame()
 
     df['binary'] = binary
 
     for i in range(lagging_size):
         df['p[t-' + str(i) + ']'] = lagging_price[i][:-9]
+        extra['p[t-' + str(i) + ']'] = lagging_price[i][-9:]
 
     for i in range(lagging_size):
         df['v[t-' + str(i) + ']'] = lagging_volume[i][:-9]
+        extra['v[t-' + str(i) + ']'] = lagging_volume[i][-9:]
 
-    return df
+    return df, extra
 
 def gru_xy(dataset):
     train_cols = np.arange(1, 33)
@@ -117,8 +111,47 @@ def gru_xy(dataset):
 
     return X, y
 
+def fit_scalers():
+
+    price_scaler = StandardScaler()
+    volume_scaler = StandardScaler()
+
+    ### Fit scalers on original data
+    pre_cleaned = pd.read_csv("BTCdata_clean.csv")
+
+    percent_price_orig = percent_difference(pre_cleaned['Open Price'])
+    diff_vol_orig = difference(pre_cleaned['Volume'])
+
+    price_scaler.fit(np.array(percent_price_orig).reshape(-1, 1))
+    volume_scaler.fit(np.array(diff_vol_orig).reshape(-1, 1))
+
+    return price_scaler, volume_scaler
+
+def predict_primary(model, dataset):
+    y_pred = model.predict(np.reshape(dataset, (-1, 1, dataset.shape[1])))
+    return y_pred
+
+def extrapolate(model, initial_pred, extra):
+    print(initial_pred)
+    y_pred = [initial_pred]
+    y_prev = initial_pred
+    for i in range(extra.shape[0]):
+        input = np.append(extra[i, :], [y_prev], axis=0)
+        input = np.reshape(input, (-1, 1, extra.shape[1] + 1))
+        y_prev = model.predict(input)[0, 0, 0]
+        y_pred.append(y_prev)
+       
+    
+    return y_pred
+
+price_scaler, volume_scaler = fit_scalers()
 data = auto_trader.basicPrepare()
-data = gru_prepare(data)
+data, extra = gru_prepare(data, price_scaler=price_scaler, volume_scaler=volume_scaler)
 X, y = gru_xy(data)
 
-print(data)
+model = load_model('gru_bitcoin.keras')
+y_pred = predict_primary(model, X)
+print(y_pred)
+y_pred = extrapolate(model, y_pred[-1, 0, 0], extra.to_numpy())
+
+print(y_pred)

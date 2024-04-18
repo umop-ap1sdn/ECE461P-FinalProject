@@ -166,4 +166,20 @@ def run_prediction():
     print(y_pred)
     return y_pred[-1]
 
-run_prediction()
+auto_trader.queue = auto_trader.build_queue()
+decision = run_prediction()
+
+BUY_THRESHOLD = 0.7
+SELL_THRESHOLD = 0.3
+
+# '''
+if decision >= BUY_THRESHOLD:
+    print("Buying Bitcoin")
+    auto_trader.buy()
+elif decision <= SELL_THRESHOLD:
+    print("Selling Bitcoin")
+    auto_trader.sell()
+else:
+    print('Uncertainty too high to trade')
+
+# '''

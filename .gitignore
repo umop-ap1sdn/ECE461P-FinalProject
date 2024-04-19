@@ -32,6 +32,14 @@ keras_env/
 # large training files
 BTCdata_final.csv
 BTCdata_final_round.csv
+BTCdata_final_binary.csv
+
+# Trading Files
+gru_trading_queue.csv
+gru_log.csv
+
+# Files with secret keys
+keys.csv
 
 # PyInstaller
 #  Usually these files are written by a python script from a template

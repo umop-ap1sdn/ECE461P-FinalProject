@@ -6,9 +6,13 @@ from keras import losses
 from keras import layers
 from keras.layers import Activation
 from keras import backend as K
+from keras.models import load_model
 import tensorflow as tf
 
 from sklearn.metrics import roc_auc_score
+from sklearn.metrics import roc_curve, confusion_matrix
+
+import matplotlib.pyplot as plt
 
 import numpy as np
 import pandas as pd
@@ -58,11 +62,11 @@ dropout = 0.0
 
 tf.random.set_seed(42)
 
-### Build Model from ground-up ###
+'''
+### Build Model ###
 model = Sequential(name="BitcoinGRU")
 model.add(layers.Input(shape=(None, input_size), batch_size=batch_size))
 model.add(layers.GRU(100, activation='tanh', kernel_regularizer=regularizers.L1L2(l1, l2), return_sequences=True, dropout=dropout))
-# model.add(layers.GRU(128, activation='tanh', kernel_regularizer=regularizers.L1L2(l2, l1), return_sequences=False, dropout=dropout))
 model.add(layers.Dense(60, activation='relu', kernel_regularizer=regularizers.L1L2(l1, l2)))
 model.add(layers.Dense(output_size, activation='sigmoid', kernel_regularizer=regularizers.L1L2(l1, l2)))
 
@@ -75,13 +79,15 @@ model.summary()
 
 print("Working")
 
+'''
+
 X_train = np.reshape(X_train, (-1, 1, input_size))
 X_test = np.reshape(X_test, (-1, 1, input_size))
 
 y_train = np.reshape(y_train, (-1, 1, output_size))
 y_test = np.reshape(y_test, (-1, 1, output_size))
 
-
+'''
 model.fit(x=X_train, y=y_train, epochs=10, batch_size=batch_size, validation_data=(X_test, y_test))
 test_loss = model.evaluate(X_test, y_test)
 
@@ -99,3 +105,29 @@ print("Train Score:", roc_auc_score(y_train, y_train_pred))
 print("Test Score:", roc_auc_score(y_test, y_test_pred))
 
 model.save('gru_bitcoin.keras')
+
+'''
+
+model = load_model('gru_bitcoin.keras')
+
+y_train = np.reshape(y_train, (-1, 1))
+y_test = np.reshape(y_test, (-1, 1))
+
+y_pred_train = np.reshape(model.predict(X_train), (-1, 1))
+y_pred_test = np.reshape(model.predict(X_test), (-1, 1))
+
+auc_roc_tr = roc_auc_score(y_train, y_pred_train)
+auc_roc_te = roc_auc_score(y_test, y_pred_test)
+
+fpr_tr, tpr_tr, thresholds_tr = roc_curve(y_train, y_pred_train)
+fpr_te, tpr_te, thresholds_te = roc_curve(y_test, y_pred_test)
+
+plt.figure(figsize=(8, 6))
+plt.plot(fpr_te, tpr_te, label=f'GRU AUC-ROC = {auc_roc_te:.4f}')
+plt.plot([0, 1], [0, 1], 'k--')  # Plot diagonal line
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.title('GRU ROC Curve')
+plt.legend(loc='lower right')
+plt.grid(True)
+plt.show()

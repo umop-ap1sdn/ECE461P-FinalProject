@@ -241,3 +241,5 @@ def build_queue():
             temp_queue.put(order['filled_qty'])
         
     return temp_queue
+
+sell_all()

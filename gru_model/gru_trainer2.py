@@ -62,7 +62,6 @@ dropout = 0.0
 
 tf.random.set_seed(42)
 
-'''
 ### Build Model ###
 model = Sequential(name="BitcoinGRU")
 model.add(layers.Input(shape=(None, input_size), batch_size=batch_size))
@@ -79,7 +78,7 @@ model.summary()
 
 print("Working")
 
-'''
+
 
 X_train = np.reshape(X_train, (-1, 1, input_size))
 X_test = np.reshape(X_test, (-1, 1, input_size))
@@ -87,7 +86,7 @@ X_test = np.reshape(X_test, (-1, 1, input_size))
 y_train = np.reshape(y_train, (-1, 1, output_size))
 y_test = np.reshape(y_test, (-1, 1, output_size))
 
-'''
+
 model.fit(x=X_train, y=y_train, epochs=10, batch_size=batch_size, validation_data=(X_test, y_test))
 test_loss = model.evaluate(X_test, y_test)
 
@@ -106,9 +105,11 @@ print("Test Score:", roc_auc_score(y_test, y_test_pred))
 
 model.save('gru_bitcoin.keras')
 
-'''
 
-model = load_model('gru_bitcoin.keras')
+
+
+
+# model = load_model('gru_bitcoin.keras')
 
 y_train = np.reshape(y_train, (-1, 1))
 y_test = np.reshape(y_test, (-1, 1))

@@ -166,29 +166,41 @@ def run_prediction():
     y_pred = extrapolate(model, y_pred[-1, 0, 0], extra.to_numpy())
 
     print(y_pred)
-    return y_pred[-1]
+    return y_pred
 
 log_path = 'alpaca/gru_log.csv'
 current_log = []
+current_scores = []
 
 if os.path.exists(log_path):
     df = pd.read_csv(log_path)
     for i in df['log']:
         current_log.append(i)
+    for i in df['scores']:
+        current_scores.append(i)
 
 auto_trader.queue = auto_trader.build_queue()
 decision = run_prediction()
+score = 0
 
-BUY_THRESHOLD = 0.7
-SELL_THRESHOLD = 0.3
+## Weighted average score
+for i in range(len(decision)):
+    score += (i + 1) * decision[i]
+score /= (10 * 11) / 2
+
+
+current_scores.append(score)
+
+BUY_THRESHOLD = 0.6
+SELL_THRESHOLD = 0.5
 
 
 # '''
-if decision >= BUY_THRESHOLD:
+if score >= BUY_THRESHOLD:
     print("Buying Bitcoin")
     current_log.append('bought')
     auto_trader.buy()
-elif decision <= SELL_THRESHOLD:
+elif score <= SELL_THRESHOLD:
     print("Selling Bitcoin")
     current_log.append('sold')
     auto_trader.sell()
@@ -198,5 +210,6 @@ else:
 
 df = pd.DataFrame()
 df['log'] = current_log
+df['scores'] = current_scores
 df.to_csv(log_path, index=False)
 # '''
